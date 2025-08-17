@@ -68,14 +68,16 @@ def create_task(task_name):
 # It's crucial for initial setup and for the "self-contained monolith" requirement.
 # It uses app.app_context() to ensure that Flask's application context is active
 # when interacting with the database, which is necessary for SQLAlchemy.
-with app.app_context():
-    # Create all database tables defined in models.py
-    # This will only create tables if they don't already exist.
-    db.create_all()
 
 @app.context_processor
 def inject_now():
     return {'now': datetime.now(timezone.utc)}
+
+
+with app.app_context():
+    # Create all database tables defined in models.py
+    # This will only create tables if they don't already exist.
+    db.create_all()
 
 
 
