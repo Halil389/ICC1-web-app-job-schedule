@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
 from azure.cosmos import CosmosClient, PartitionKey
-import uuid
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,15 +16,42 @@ app = Flask(__name__)
 COSMOS_ENDPOINT = os.environ.get('COSMOS_ENDPOINT')
 COSMOS_KEY = os.environ.get('COSMOS_KEY')
 COSMOS_DB = 'BritEdge'
-COSMOS_CONTAINER = 'Tasks'
+COSMOS_CONTAINER = 'tasks'
 
 # Initialize Cosmos client and container
 client = CosmosClient(COSMOS_ENDPOINT, COSMOS_KEY)
 database = client.create_database_if_not_exists(id=COSMOS_DB)
 container = database.create_container_if_not_exists(
     id=COSMOS_CONTAINER,
-    partition_key=PartitionKey(path="/sid")
+    partition_key=PartitionKey(path="/id")
 )
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/tasks')
+def tasks():
+    tasks = list(container.read_all_items())
+    tasks.sort(key=lambda x: x.get('description', 'this is a simulation'))
+    return render_template('tasks.html', tasks=tasks)
+
+@app.route('/add', methods=['POST'])
+def add_task():
+    new_task = request.form.get('task')
+    description = int(request.form.get('description', 'this is a simulation'))
+    task_doc = {
+        'id': str(hash(new_task + str(description))),
+        'title': new_task,
+        'description': description
+    }
+    container.upsert_item(task_doc)
+    return redirect(url_for('tasks'))
+
+@app.route('/delete/<task_id>', methods=['POST'])
+def delete_task(task_id):
+    container.delete_item(item=task_id, partition_key=task_id)
+    return redirect(url_for('tasks'))
 
 
 
@@ -58,24 +84,7 @@ with app.app_context():
 def inject_now():
     return {'now': datetime.now(timezone.utc)}
 
-@app.route('/tasks')
-def tasks():
-    try:
-        # Generate a unique ID for the new task and for the partition key 'sid'
-        new_task_uuid = str(uuid.uuid4())
-        new_task = {
-            "id": new_task_uuid,
-            "sid": new_task_uuid, # Using the UUID as the partition key value for this example
-            "task_name": "Automatically Created Task: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "description": "This is a Simulation.",
-            "status": "pending",
-            "created_at": str(datetime.now(timezone.utc))
-        }
 
-        return f"Successfully created task: {new_task['task_name']} with ID: {new_task['id']}"
-    except Exception as e:
-        # Basic error handling in case of issues connecting or creating the item
-        return f"Error creating task: {e}", 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
