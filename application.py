@@ -58,8 +58,8 @@ with app.app_context():
 def inject_now():
     return {'now': datetime.now(timezone.utc)}
 
-@app.route('/create-automatic-task')
-def create_automatic_task():
+@app.route('/tasks')
+def tasks():
     try:
         # Generate a unique ID for the new task and for the partition key 'sid'
         new_task_uuid = str(uuid.uuid4())
