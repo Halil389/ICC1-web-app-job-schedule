@@ -5,6 +5,11 @@ from extensions import db, login_manager
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
+import uuid
+
+# Azure Cosmos DB imports
+from azure.cosmos import CosmosClient, PartitionKey, exceptions
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,6 +31,38 @@ login_manager.login_message_category = 'info'
 # Import models and routes after initialising db and app to avoid circular imports
 from models import User, Job # Import User and Job models
 from routes import * # Import all routes from routes.py
+
+# ---------- Cosmos DB Setup ----------
+COSMOS_URI = os.getenv("COSMOS_URI")
+COSMOS_KEY = os.getenv("COSMOS_KEY")
+COSMOS_DB_NAME = os.getenv("COSMOS_DB_NAME", "TaskDB")
+COSMOS_CONTAINER_NAME = os.getenv("COSMOS_CONTAINER_NAME", "Tasks")
+
+cosmos_client = CosmosClient(COSMOS_URI, COSMOS_KEY)
+database = cosmos_client.create_database_if_not_exists(id=COSMOS_DB_NAME)
+container = database.create_container_if_not_exists(
+    id=COSMOS_CONTAINER_NAME,
+    partition_key=PartitionKey(path="/userId"),  # adjust partition key as needed
+    offer_throughput=400
+)
+
+# ---------- New Route to Auto-Create Task ----------
+@app.route('/create-task/<string:task_name>', methods=['GET'])
+def create_task(task_name):
+    try:
+        task_item = {
+            "id": str(uuid.uuid4()),  # unique ID
+            "taskName": task_name,
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "status": "pending",
+            "userId": "default"  # you can replace with actual logged-in user ID
+        }
+
+        container.create_item(body=task_item)
+
+        return jsonify({"message": "Task created", "task": task_item}), 201
+    except exceptions.CosmosHttpResponseError as e:
+        return jsonify({"error": str(e)}), 500
 
 # This block ensures that database tables are created if they don't exist.
 # It's crucial for initial setup and for the "self-contained monolith" requirement.
