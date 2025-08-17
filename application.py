@@ -5,6 +5,8 @@ from extensions import db, login_manager
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
+from azure.cosmos import CosmosClient, PartitionKey
+
 
 # Load environment variables from .env file
 load_dotenv()
