@@ -23,7 +23,7 @@ database = client.create_database_if_not_exists(id=COSMOS_DB)
 container = database.create_container_if_not_exists(
     id=COSMOS_CONTAINER,
     partition_key=PartitionKey(path="/sid")
-
+)
 
 
 
