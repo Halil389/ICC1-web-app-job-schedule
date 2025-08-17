@@ -33,7 +33,7 @@ from models import User, Job # Import User and Job models
 from routes import * # Import all routes from routes.py
 
 # ---------- Cosmos DB Setup ----------
-COSMOS_URI = os.getenv("COSMOS_URI")
+COSMOS_ENDPOINT = os.getenv("COSMOS_ENDPOINT")
 COSMOS_KEY = os.getenv("COSMOS_KEY")
 COSMOS_DB_NAME = os.getenv("COSMOS_DB_NAME", "TaskDB")
 COSMOS_CONTAINER_NAME = os.getenv("COSMOS_CONTAINER_NAME", "Tasks")
