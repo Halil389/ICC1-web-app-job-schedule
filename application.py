@@ -5,58 +5,14 @@ from extensions import db, login_manager
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
-from azure.cosmos import CosmosClient, PartitionKey
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Initialise Flask application
 app = Flask(__name__)
-
-COSMOS_ENDPOINT = os.environ.get('COSMOS_ENDPOINT')
-COSMOS_KEY = os.environ.get('COSMOS_KEY')
-COSMOS_DB = 'BritEdge'
-COSMOS_CONTAINER = 'tasks'
-
-# Initialize Cosmos client and container
-client = CosmosClient(COSMOS_ENDPOINT, COSMOS_KEY)
-database = client.create_database_if_not_exists(id=COSMOS_DB)
-container = database.create_container_if_not_exists(
-    id=COSMOS_CONTAINER,
-    partition_key=PartitionKey(path="/id")
-)
-
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-@app.route('/tasks')
-def tasks():
-    tasks = list(container.read_all_items())
-    tasks.sort(key=lambda x: x.get('description', 'this is a simulation'))
-    return render_template('tasks.html', tasks=tasks)
-
-@app.route('/add', methods=['POST'])
-def add_task():
-    new_task = request.form.get('task')
-    description = int(request.form.get('description', 'this is a simulation'))
-    task_doc = {
-        'id': str(hash(new_task + str(description))),
-        'title': new_task,
-        'description': description
-    }
-    container.upsert_item(task_doc)
-    return redirect(url_for('tasks'))
-
-@app.route('/delete/<task_id>', methods=['POST'])
-def delete_task(task_id):
-    container.delete_item(item=task_id, partition_key=task_id)
-    return redirect(url_for('tasks'))
-
-
-
 # Load configuration from Config class
-'''app.config.from_object(Config)
+app.config.from_object(Config)
 
 # Initialise SQLAlchemy with the Flask app
 db.init_app(app)
@@ -82,7 +38,7 @@ with app.app_context():
 
 @app.context_processor
 def inject_now():
-    return {'now': datetime.now(timezone.utc)}'''
+    return {'now': datetime.now(timezone.utc)}
 
 
 
