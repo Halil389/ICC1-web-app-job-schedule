@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
 from azure.cosmos import CosmosClient, PartitionKey
-
+import uuid
 
 # Load environment variables from .env file
 load_dotenv()
@@ -57,6 +57,25 @@ with app.app_context():
 @app.context_processor
 def inject_now():
     return {'now': datetime.now(timezone.utc)}
+
+@app.route('/create-automatic-task')
+def create_automatic_task():
+    try:
+        # Generate a unique ID for the new task and for the partition key 'sid'
+        new_task_uuid = str(uuid.uuid4())
+        new_task = {
+            "id": new_task_uuid,
+            "sid": new_task_uuid, # Using the UUID as the partition key value for this example
+            "task_name": "Automatically Created Task: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "description": "This is a Simulation.",
+            "status": "pending",
+            "created_at": str(datetime.now(timezone.utc))
+        }
+
+        return f"Successfully created task: {new_task['task_name']} with ID: {new_task['id']}"
+    except Exception as e:
+        # Basic error handling in case of issues connecting or creating the item
+        return f"Error creating task: {e}", 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
