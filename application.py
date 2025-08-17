@@ -56,7 +56,7 @@ def delete_task(task_id):
 
 
 # Load configuration from Config class
-app.config.from_object(Config)
+'''app.config.from_object(Config)
 
 # Initialise SQLAlchemy with the Flask app
 db.init_app(app)
@@ -82,7 +82,7 @@ with app.app_context():
 
 @app.context_processor
 def inject_now():
-    return {'now': datetime.now(timezone.utc)}
+    return {'now': datetime.now(timezone.utc)}'''
 
 
 
