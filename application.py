@@ -11,6 +11,22 @@ load_dotenv()
 
 # Initialise Flask application
 app = Flask(__name__)
+
+COSMOS_ENDPOINT = os.environ.get('COSMOS_ENDPOINT')
+COSMOS_KEY = os.environ.get('COSMOS_KEY')
+COSMOS_DB = 'BritEdge'
+COSMOS_CONTAINER = 'Tasks'
+
+# Initialize Cosmos client and container
+client = CosmosClient(COSMOS_ENDPOINT, COSMOS_KEY)
+database = client.create_database_if_not_exists(id=COSMOS_DB)
+container = database.create_container_if_not_exists(
+    id=COSMOS_CONTAINER,
+    partition_key=PartitionKey(path="/sid")
+
+
+
+
 # Load configuration from Config class
 app.config.from_object(Config)
 
