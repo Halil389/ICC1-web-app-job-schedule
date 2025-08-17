@@ -38,31 +38,20 @@ COSMOS_KEY = os.getenv("COSMOS_KEY")
 COSMOS_DB_NAME = os.getenv("COSMOS_DB_NAME", "TaskDB")
 COSMOS_CONTAINER_NAME = os.getenv("COSMOS_CONTAINER_NAME", "Tasks")
 
-cosmos_client = CosmosClient(COSMOS_URI, COSMOS_KEY)
+if not COSMOS_URI or not COSMOS_KEY:
+    raise RuntimeError("❌ Missing Cosmos DB credentials. Please set COSMOS_URI and COSMOS_KEY in environment variables.")
+
+cosmos_client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)  # <-- updated 'credential' arg
 database = cosmos_client.create_database_if_not_exists(id=COSMOS_DB_NAME)
-container = database.create_container_if_not_exists(
-    id=COSMOS_CONTAINER_NAME,
-    partition_key=PartitionKey(path="/userId"),  # adjust partition key as needed
-    offer_throughput=400
-)
 
-# ---------- New Route to Auto-Create Task ----------
-@app.route('/create-task/<string:task_name>', methods=['GET'])
-def create_task(task_name):
-    try:
-        task_item = {
-            "id": str(uuid.uuid4()),  # unique ID
-            "taskName": task_name,
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-            "status": "pending",
-            "userId": "default"  # you can replace with actual logged-in user ID
-        }
-
-        container.create_item(body=task_item)
-
-        return jsonify({"message": "Task created", "task": task_item}), 201
-    except exceptions.CosmosHttpResponseError as e:
-        return jsonify({"error": str(e)}), 500
+try:
+    container = database.create_container_if_not_exists(
+        id=COSMOS_CONTAINER_NAME,
+        partition_key=PartitionKey(path="/id"),  # safer default
+        offer_throughput=400
+    )
+except exceptions.CosmosResourceExistsError:
+    container = database.get_container_client(COSMOS_CONTAINER_NAME)
 
 # This block ensures that database tables are created if they don't exist.
 # It's crucial for initial setup and for the "self-contained monolith" requirement.
