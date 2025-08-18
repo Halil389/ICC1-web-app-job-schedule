@@ -47,11 +47,21 @@ database = cosmos_client.create_database_if_not_exists(id=COSMOS_DB_NAME)
 try:
     container = database.create_container_if_not_exists(
         id=COSMOS_CONTAINER_NAME,
-        partition_key=PartitionKey(path="/id"),  # safer default
-        offer_throughput=400
+        partition_key=PartitionKey(path="/id")  # Removed offer_throughput
     )
+    print(f"✅ Container '{COSMOS_CONTAINER_NAME}' created or retrieved successfully.")
+
 except exceptions.CosmosResourceExistsError:
     container = database.get_container_client(COSMOS_CONTAINER_NAME)
+    print(f"✅ Container '{COSMOS_CONTAINER_NAME}' already exists, getting client.")
+
+except exceptions.CosmosHttpResponseError as e:
+    # Handle the case where offer_throughput causes an error on serverless accounts.
+    if e.status_code == 400 and "unsupported for serverless accounts" in str(e):
+        print("⚠️ Warning: Throughput setting is not supported for serverless accounts. Attempting to get the container without it.")
+        container = database.get_container_client(COSMOS_CONTAINER_NAME)
+    else:
+        raise e
 
 # This block ensures that database tables are created if they don't exist.
 # It's crucial for initial setup and for the "self-contained monolith" requirement.
