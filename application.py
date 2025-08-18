@@ -38,10 +38,10 @@ COSMOS_KEY = os.getenv("COSMOS_KEY")
 COSMOS_DB_NAME = os.getenv("COSMOS_DB_NAME", "TaskDB")
 COSMOS_CONTAINER_NAME = os.getenv("COSMOS_CONTAINER_NAME", "Tasks")
 
-if not COSMOS_URI or not COSMOS_KEY:
+if not COSMOS_ENDPOINT or not COSMOS_KEY:
     raise RuntimeError("❌ Missing Cosmos DB credentials. Please set COSMOS_URI and COSMOS_KEY in environment variables.")
 
-cosmos_client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)  # <-- updated 'credential' arg
+cosmos_client = CosmosClient(COSMOS_ENDPOINT, credential=COSMOS_KEY)  # <-- updated 'credential' arg
 database = cosmos_client.create_database_if_not_exists(id=COSMOS_DB_NAME)
 
 try:
