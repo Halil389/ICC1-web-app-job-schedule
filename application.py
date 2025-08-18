@@ -63,6 +63,54 @@ except exceptions.CosmosHttpResponseError as e:
     else:
         raise e
 
+def create_task(description: str, user_id: str):
+    """Creates a new task item in Cosmos DB."""
+    try:
+        new_task = {
+            'id': str(uuid.uuid4()),
+            'userId': user_id,
+            'description': description,
+            'createdAt': datetime.now(timezone.utc).isoformat(),
+            'isComplete': False
+        }
+        container.create_item(body=new_task)
+        return new_task
+    except Exception as e:
+        print(f"Error creating task: {e}")
+        return None
+
+def get_tasks_by_user(user_id: str):
+    """Retrieves all tasks for a specific user from Cosmos DB."""
+    try:
+        query = "SELECT * FROM c WHERE c.userId = @user_id"
+        tasks = list(container.query_items(
+            query=query,
+            parameters=[{'name': '@user_id', 'value': user_id}],
+            enable_cross_partition_query=True
+        ))
+        return tasks
+    except Exception as e:
+        print(f"Error fetching tasks: {e}")
+        return []
+
+def update_task_status(task_id: str, is_complete: bool, user_id: str):
+    """Updates the completion status of a task."""
+    try:
+        # Cosmos DB requires the partition key to update an item.
+        # Here, we assume 'id' is both the item ID and partition key.
+        existing_task = container.read_item(item=task_id, partition_key=task_id)
+        if existing_task:
+            existing_task['isComplete'] = is_complete
+            container.upsert_item(body=existing_task)
+            return existing_task
+        return None
+    except exceptions.CosmosResourceNotFoundError:
+        print(f"Task with ID {task_id} not found.")
+        return None
+    except Exception as e:
+        print(f"Error updating task: {e}")
+        return None
+
 # This block ensures that database tables are created if they don't exist.
 # It's crucial for initial setup and for the "self-contained monolith" requirement.
 # It uses app.app_context() to ensure that Flask's application context is active
